@@ -18,7 +18,7 @@ def select_file():
     """
     Open a file dialog to select a file.
     """
-    Tk().withdraw()  # Hide the root Tkinter window
+    Tk().withdraw() 
     return askopenfilename(title="Select the .torsec file", filetypes=[("Torsec files", "*.torsec")])
 
 
@@ -30,7 +30,7 @@ def unarchive_file(stdscr):
     stdscr.addstr("Opening file selection dialog...\n")
     stdscr.refresh()
 
-    filepath = select_file()  # Open the file dialog
+    filepath = select_file()
     if not filepath:
         stdscr.addstr("No file selected. Returning to menu.\n")
         stdscr.refresh()
@@ -43,7 +43,7 @@ def unarchive_file(stdscr):
         curses.napms(2000)
         return
 
-    file_directory = os.path.dirname(filepath)  # Get the directory of the .torsec file
+    file_directory = os.path.dirname(filepath) 
 
     stdscr.addstr("\nPassword: ")
     stdscr.refresh()
@@ -63,7 +63,7 @@ def unarchive_file(stdscr):
                 return
 
             output_dir = os.path.join(file_directory, os.path.splitext(os.path.basename(filepath))[0] + "_extracted")
-            os.makedirs(output_dir, exist_ok=True)  # Create a folder for the extracted files
+            os.makedirs(output_dir, exist_ok=True) 
 
             for file in zf.namelist():
                 if file == 'signature':
