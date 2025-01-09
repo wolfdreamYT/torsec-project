@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unarchiver Tool</title>
+    <style>
+        body {
+            font-family: monospace;
+            background-color: #1e1e1e;
+            color: white;
+            padding: 20px;
+        }
+        input, button {
+            margin: 10px 0;
+            padding: 10px;
+            font-family: monospace;
+        }
+        #output {
+            background: black;
+            color: white;
+            padding: 10px;
+            margin-top: 20px;
+            height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Unarchiver Tool</h1>
+    <label for="fileInput">Upload .torsec file:</label>
+    <input type="file" id="fileInput" accept=".torsec"><br>
+    <label for="passwordInput">Enter Password:</label>
+    <input type="password" id="passwordInput"><br>
+    <button id="unarchiveButton">Unarchive</button>
+    <div id="output"></div>
+
+    <script>
+        document.getElementById('unarchiveButton').addEventListener('click', () => {
+            const fileInput = document.getElementById('fileInput');
+            const passwordInput = document.getElementById('passwordInput');
+            const output = document.getElementById('output');
+
+            output.textContent = ''; // Clear previous output
+
+            if (!fileInput.files.length) {
+                appendOutput("Error: No file selected.");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const password = passwordInput.value;
+
+            if (!password) {
+                appendOutput("Error: Password is required.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    // Read file content as binary string
+                    const data = reader.result;
+                    const zip = new JSZip();
+
+                    zip.loadAsync(data).then((contents) => {
+                        const signatureFile = contents.files['signature'];
+                        if (!signatureFile) {
+                            appendOutput("Error: Invalid .torsec file (missing signature).");
+                            return;
+                        }
+
+                        // Verify password hash
+                        signatureFile.async('string').then((signature) => {
+                            const hashedPassword = hashPassword(password);
+                            if (hashedPassword !== signature) {
+                                appendOutput("Error: Incorrect password or file integrity compromised.");
+                                return;
+                            }
+
+                            appendOutput("Password verified. Extracting files...");
+                            // Extract files
+                            Object.keys(contents.files).forEach((filename) => {
+                                if (filename === 'signature') return;
+
+                                contents.files[filename].async('blob').then((fileContent) => {
+                                    downloadFile(fileContent, filename);
+                                    appendOutput(`Extracted: ${filename}`);
+                                });
+                            });
+                        });
+                    });
+                } catch (err) {
+                    appendOutput(`Error: ${err.message}`);
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+
+        function appendOutput(message) {
+            const output = document.getElementById('output');
+            const p = document.createElement('p');
+            p.textContent = message;
+            output.appendChild(p);
+        }
+
+        function hashPassword(password) {
+            // Hash the password using a simple method (replace this with a real hashing algorithm for production)
+            return btoa(password); // Simulating base64 hash (for demo purposes)
+        }
+
+        function downloadFile(content, filename) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</body>
+</html>
