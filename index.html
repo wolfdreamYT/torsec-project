@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TORSec Unarchiver</title>
+    <title>Unarchiver Tool</title>
     <style>
         body {
             font-family: monospace;
@@ -35,13 +35,14 @@
     <button id="unarchiveButton">Unarchive</button>
     <div id="output"></div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
         document.getElementById('unarchiveButton').addEventListener('click', () => {
             const fileInput = document.getElementById('fileInput');
             const passwordInput = document.getElementById('passwordInput');
             const output = document.getElementById('output');
 
-            output.textContent = ''; 
+            output.textContent = '';
 
             if (!fileInput.files.length) {
                 appendOutput("Error: No file selected.");
@@ -57,7 +58,7 @@
             }
 
             const reader = new FileReader();
-            reader.onload = () => {
+            reader.onload = async () => {
                 try {
                     const data = reader.result;
                     const zip = new JSZip();
@@ -69,15 +70,14 @@
                             return;
                         }
 
-                        signatureFile.async('string').then((signature) => {
-                            const hashedPassword = hashPassword(password);
+                        signatureFile.async('string').then(async (signature) => {
+                            const hashedPassword = await hashPassword(password);
                             if (hashedPassword !== signature) {
                                 appendOutput("Error: Incorrect password or file integrity compromised.");
                                 return;
                             }
 
                             appendOutput("Password verified. Extracting files...");
-                            // Extract files
                             Object.keys(contents.files).forEach((filename) => {
                                 if (filename === 'signature') return;
 
@@ -103,8 +103,12 @@
             output.appendChild(p);
         }
 
-        function hashPassword(password) {
-            return btoa(password);
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return btoa(String.fromCharCode(...hashArray));
         }
 
         function downloadFile(content, filename) {
@@ -116,6 +120,5 @@
             document.body.removeChild(link);
         }
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </body>
 </html>
